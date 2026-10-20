@@ -27,16 +27,17 @@ const MOODS = [
 ];
 
 export async function runDailyPost(force = false): Promise<{ ok: boolean; error?: string }> {
-  const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
+  const { sql, getDailyPost, setDailyPostGenerating, setDailyPostStatus } = await import("./db.server");
+  const db = sql();
   const today = new Date().toISOString().slice(0, 10);
-  const { data: existing } = await db.from("daily_posts").select("status").eq("post_date", today).maybeSingle();
+  const existing = await getDailyPost(db, today);
   if (existing?.status === "posted" && !force) return { ok: true };
   if (existing?.status === "paused") return { ok: false, error: "paused" };
 
   const day = Math.floor(Date.now() / 86400000);
   const line = LINES[day % LINES.length];
   const mood = MOODS[day % MOODS.length];
-  await db.from("daily_posts").upsert({ post_date: today, status: "generating", caption: line });
+  await setDailyPostGenerating(db, today, line);
 
   try {
     const key = process.env["IMAGE_API_KEY"];
@@ -55,7 +56,7 @@ export async function runDailyPost(force = false): Promise<{ ok: boolean; error?
     if (!res.ok) {
       const body = await res.text();
       if (res.status === 402 || res.status === 403) {
-        await db.from("daily_posts").update({ status: "paused", error: `${res.status}: ${body.slice(0, 300)}` }).eq("post_date", today);
+        await setDailyPostStatus(db, today, "paused", `${res.status}: ${body.slice(0, 300)}`);
       }
       throw new Error(`Image generation failed [${res.status}]: ${body.slice(0, 300)}`);
     }
@@ -79,11 +80,11 @@ export async function runDailyPost(force = false): Promise<{ ok: boolean; error?
     form.set("parse_mode", "HTML");
     form.set("photo", blob, "musk.png");
     await tgForm("sendPhoto", form);
-    await db.from("daily_posts").update({ status: "posted", error: null }).eq("post_date", today);
+    await setDailyPostStatus(db, today, "posted", null);
     return { ok: true };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
-    await db.from("daily_posts").update({ status: existing?.status === "paused" ? "paused" : "failed", error }).eq("post_date", today).neq("status", "paused");
+    await setDailyPostStatus(db, today, existing?.status === "paused" ? "paused" : "failed", error);
     return { ok: false, error };
   }
 }
