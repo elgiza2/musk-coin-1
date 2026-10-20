@@ -163,14 +163,25 @@ async function notifyAdmins(db: any, text: string, id: string | null) {
 
 // Step 1: create a pending deposit with a unique memo the wallet attaches as a comment.
 export const startDeposit = createServerFn({ method: "POST" })
-  .inputValidator((d) => Auth.extend({ amount: z.number().min(0.1).max(100000) }).parse(d))
+  .inputValidator((d) =>
+    Auth.extend({
+      amount: z.number().min(0.1).max(100000),
+      network: z.enum(["ton", "tron", "solana", "bsc", "ethereum"]).default("ton"),
+      currency: z.string().trim().min(1).max(12).default("GRAM"),
+      txRef: z.string().trim().max(160).optional(),
+    }).parse(d),
+  )
   .handler(async ({ data }) => {
     const { db, user } = await ctx(data.initData);
     const D = await import("./db.server");
     const { DEPOSIT_ADDRESS } = await import("./catalog");
     const bytes = crypto.getRandomValues(new Uint8Array(5));
     const memo = "MUSK" + Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").toUpperCase().slice(0, 8);
-    const id = await D.createDepositRequest(db, user.id, data.amount, memo);
+    const id = await D.createDepositRequest(db, user.id, data.amount, memo, {
+      network: data.network,
+      currency: data.currency,
+      txRef: data.txRef ?? null,
+    });
     return { id, memo, address: DEPOSIT_ADDRESS, nano: String(Math.round(data.amount * 1e9)) };
   });
 
@@ -184,6 +195,8 @@ export const checkDeposit = createServerFn({ method: "POST" })
     const r = await D.getUserWalletRequest(db, data.id, user.id);
     if (!r || r.kind !== "deposit") throw new Error("Not found");
     if (r.status !== "pending") return { status: r.status };
+    // Only TON deposits auto-verify on-chain; other networks are approved manually.
+    if ((r as any).network && (r as any).network !== "ton") return { status: "pending" };
     const res = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${DEPOSIT_ADDRESS}&limit=50`);
     const j: any = await res.json().catch(() => null);
     const txs: any[] = j?.result ?? [];
@@ -198,7 +211,14 @@ export const checkDeposit = createServerFn({ method: "POST" })
   });
 
 export const requestWithdraw = createServerFn({ method: "POST" })
-  .inputValidator((d) => Auth.extend({ amount: z.number().min(1).max(100000), address: z.string().trim().min(10).max(120) }).parse(d))
+  .inputValidator((d) =>
+    Auth.extend({
+      amount: z.number().min(1).max(100000),
+      address: z.string().trim().min(10).max(160),
+      network: z.enum(["ton", "tron", "solana", "bsc", "ethereum"]).default("ton"),
+      currency: z.string().trim().min(1).max(12).default("GRAM"),
+    }).parse(d),
+  )
   .handler(async ({ data }) => {
     const { db, user } = await ctx(data.initData);
     const D = await import("./db.server");
@@ -209,16 +229,19 @@ export const requestWithdraw = createServerFn({ method: "POST" })
     }
     let id: string;
     try {
-      id = await D.createWithdrawRequest(db, user.id, data.amount, data.address);
+      id = await D.createWithdrawRequest(db, user.id, data.amount, data.address, {
+        network: data.network,
+        currency: data.currency,
+      });
     } catch (e: any) {
       await D.addGram(db, user.id, data.amount);
       throw new Error(e?.message ?? "Failed to create request");
     }
-    await notifyAdmins(db, `<b>Withdraw request</b>\nUser: ${user.id}${user.username ? ` (@${user.username})` : ""}\nAmount: ${data.amount} GRAM\nTo: <code>${data.address.replace(/[<>&]/g, "")}</code>`, id);
+    await notifyAdmins(db, `<b>Withdraw request</b>\nUser: ${user.id}${user.username ? ` (@${user.username})` : ""}\nAmount: ${data.amount} ${data.currency} (${data.network})\nTo: <code>${data.address.replace(/[<>&]/g, "")}</code>`, id);
     return { ok: true };
   });
 
-export type WalletRequest = { id: string; kind: string; amount: number; status: string; createdAt: string };
+export type WalletRequest = { id: string; kind: string; amount: number; status: string; createdAt: string; network: string; currency: string };
 export const listWalletRequests = createServerFn({ method: "POST" })
   .inputValidator((d) => Auth.parse(d))
   .handler(async ({ data }): Promise<WalletRequest[]> => {
@@ -226,5 +249,5 @@ export const listWalletRequests = createServerFn({ method: "POST" })
     const { db, user } = await ctx(data.initData);
     const D = await import("./db.server");
     const rows = await D.listUserWalletRequests(db, user.id, 20);
-    return rows.map((r: any) => ({ id: String(r.id), kind: r.kind, amount: Number(r.amount), status: r.status, createdAt: r.created_at }));
+    return rows.map((r: any) => ({ id: String(r.id), kind: r.kind, amount: Number(r.amount), status: r.status, createdAt: r.created_at, network: r.network ?? "ton", currency: r.currency ?? "GRAM" }));
   });

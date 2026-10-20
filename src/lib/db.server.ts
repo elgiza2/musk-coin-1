@@ -334,6 +334,8 @@ export type WalletRequest = {
   tx_ref: string | null;
   memo: string | null;
   status: string;
+  network: string;
+  currency: string;
 };
 
 export async function getWalletRequest(db: Db, id: string): Promise<WalletRequest | null> {
@@ -352,15 +354,29 @@ export async function getUserWalletRequest(db: Db, id: string, tgId: number): Pr
 
 export async function listUserWalletRequests(db: Db, tgId: number, limit = 20) {
   const rows = (await rest(db, `musk_wallet_requests`, {
-    query: `?tg_id=eq.${tgId}&select=id,kind,amount,status,created_at&order=created_at.desc&limit=${limit}`,
+    query: `?tg_id=eq.${tgId}&select=id,kind,amount,status,created_at,network,currency&order=created_at.desc&limit=${limit}`,
   })) as Row[];
   return rows as any[];
 }
 
-export async function createDepositRequest(db: Db, tgId: number, amount: number, memo: string): Promise<string> {
+export async function createDepositRequest(
+  db: Db,
+  tgId: number,
+  amount: number,
+  memo: string,
+  extra: { network?: string; currency?: string; txRef?: string | null } = {},
+): Promise<string> {
   const rows = (await rest(db, `musk_wallet_requests`, {
     method: "POST",
-    body: { tg_id: tgId, kind: "deposit", amount, memo },
+    body: {
+      tg_id: tgId,
+      kind: "deposit",
+      amount,
+      memo,
+      network: extra.network ?? "ton",
+      currency: extra.currency ?? "GRAM",
+      ...(extra.txRef ? { tx_ref: extra.txRef } : {}),
+    },
   })) as Row[];
   return String(rows[0].id);
 }
@@ -387,10 +403,18 @@ export async function createWithdrawRequest(
   tgId: number,
   amount: number,
   address: string,
+  extra: { network?: string; currency?: string } = {},
 ): Promise<string> {
   const rows = (await rest(db, `musk_wallet_requests`, {
     method: "POST",
-    body: { tg_id: tgId, kind: "withdraw", amount, address },
+    body: {
+      tg_id: tgId,
+      kind: "withdraw",
+      amount,
+      address,
+      network: extra.network ?? "ton",
+      currency: extra.currency ?? "GRAM",
+    },
   })) as Row[];
   return String(rows[0].id);
 }

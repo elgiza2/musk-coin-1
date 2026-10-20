@@ -61,33 +61,39 @@ function MinePage() {
   };
 
   const R = 118, C = 2 * Math.PI * R;
+  const avatar = me?.photoUrl || mascot;
   return (
-    <div className="flex flex-col items-center">
+    <div className="animate-rise flex min-h-[calc(100dvh-220px)] flex-col items-center justify-center">
       <div className="w-full"><TelegramNotice /></div>
-      <div className="animate-rise flex w-full items-center justify-between">
-        <div>
-          <p className="text-[13px] font-medium text-muted-foreground">Good to see you</p>
-          <p className="text-xl font-bold">{me?.firstName ?? "Guest"}</p>
-        </div>
-        <div className="glass rounded-full px-3 py-1.5 text-xs font-semibold">Musk Coin</div>
-      </div>
 
-      <div className="animate-rise relative mt-10 h-[272px] w-[272px]" style={{ animationDelay: "60ms" }}>
-        <svg viewBox="0 0 272 272" className="absolute inset-0 -rotate-90">
-          <circle cx="136" cy="136" r={R} fill="none" stroke="var(--glass-strong)" strokeWidth="10" />
+      <div className="animate-rise relative mt-2 h-[300px] w-[300px]">
+        <svg viewBox="0 0 300 300" className="absolute inset-0 -rotate-90">
+          <circle cx="150" cy="150" r={R} fill="none" stroke="var(--glass-strong)" strokeWidth="12" />
           <circle
-            cx="136" cy="136" r={R} fill="none" stroke="var(--primary)" strokeWidth="10" strokeLinecap="round"
+            cx="150" cy="150" r={R} fill="none" stroke="var(--primary)" strokeWidth="12" strokeLinecap="round"
             strokeDasharray={C} strokeDashoffset={C * (1 - progress)} style={{ transition: "stroke-dashoffset 1s linear" }}
           />
         </svg>
-        <div className="glass absolute inset-6 flex items-center justify-center rounded-full">
-          <img src={mascot} alt="Musk Coin mascot" width={1024} height={1024} className="animate-float h-40 w-40 object-contain" />
+        <div className="glass absolute inset-7 flex items-center justify-center overflow-hidden rounded-full">
+          <img
+            key={avatar}
+            src={avatar}
+            alt={me?.firstName ?? "Musk Coin"}
+            width={512} height={512}
+            className="animate-float h-full w-full object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).src = mascot; }}
+          />
         </div>
+        {running && (
+          <div className="glass-strong absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold tabular-nums">
+            {hh}:{mm}:{ss}
+          </div>
+        )}
       </div>
 
       <div className="animate-rise mt-8 text-center" style={{ animationDelay: "120ms" }}>
         <p className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">Balance</p>
-        <p className="mt-1 text-5xl font-bold tabular-nums tracking-tight">{fmt(live)}</p>
+        <p className="mt-1 text-6xl font-bold tabular-nums tracking-tight">{fmt(live)}</p>
         <p className="mt-1 text-sm text-muted-foreground">MUSK</p>
       </div>
 

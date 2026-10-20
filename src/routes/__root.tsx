@@ -9,8 +9,8 @@ import {
   useLocation,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-import { Pickaxe, CircleDot, ListChecks, Gem, Wallet } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Pickaxe, CircleDot, Gift, Gem, Wallet } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { tgWebApp } from "@/lib/tg-client";
 
@@ -59,8 +59,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, viewport-fit=cover" },
       { name: "theme-color", content: "#141218" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -91,26 +94,39 @@ function RootShell({ children }: { children: ReactNode }) {
 const NAV = [
   { to: "/", icon: Pickaxe, label: "Mine" },
   { to: "/play", icon: CircleDot, label: "Plinko" },
-  { to: "/tasks", icon: ListChecks, label: "Tasks" },
+  { to: "/earn", icon: Gift, label: "Earn" },
   { to: "/nft", icon: Gem, label: "NFT" },
   { to: "/wallet", icon: Wallet, label: "Wallet" },
 ] as const;
 
 function TabBar() {
   const { pathname } = useLocation();
+  const [pressed, setPressed] = useState<string | null>(null);
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-      <div className="glass-strong mx-auto flex max-w-md items-center justify-between rounded-full p-1.5 shadow-2xl">
+    <nav className="tabbar-dock fixed inset-x-0 bottom-0 z-50 px-4 pb-[max(env(safe-area-inset-bottom,0px),10px)] pt-2">
+      <div className="tabbar-glass mx-auto flex max-w-md items-stretch justify-between gap-1 rounded-[28px] p-2 shadow-2xl">
         {NAV.map((n) => {
           const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
           return (
             <Link
               key={n.to}
               to={n.to}
-              className={`press flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 transition-colors ${active ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
+              onTouchStart={() => setPressed(n.to)}
+              onTouchEnd={() => setPressed(null)}
+              onMouseDown={() => setPressed(n.to)}
+              onMouseUp={() => setPressed(null)}
+              className={`tabbar-item press relative flex flex-1 flex-col items-center gap-1 rounded-2xl py-2.5 transition-all duration-300 ${
+                active ? "tabbar-active text-foreground" : "text-muted-foreground"
+              } ${pressed === n.to ? "scale-95" : "scale-100"}`}
             >
-              <n.icon className="h-5 w-5" strokeWidth={active ? 2.3 : 1.8} />
-              <span className="text-[10px] font-medium">{n.label}</span>
+              <span className={`tabbar-glow ${active ? "opacity-100" : "opacity-0"}`} aria-hidden />
+              <n.icon
+                className={`tabbar-icon h-[22px] w-[22px] transition-all duration-300 ${active ? "tabbar-icon-pop" : ""}`}
+                strokeWidth={active ? 2.4 : 1.7}
+              />
+              <span className={`text-[10px] font-semibold tracking-wide transition-all duration-300 ${active ? "opacity-100" : "opacity-70"}`}>
+                {n.label}
+              </span>
             </Link>
           );
         })}
@@ -125,16 +141,18 @@ function RootComponent() {
     const w = tgWebApp();
     if (!w) return;
     w.ready();
-    w.expand();
+    try { w.expand(); } catch {}
+    try { w.requestFullscreen?.(); } catch {}
     try { w.disableVerticalSwipes?.(); } catch {}
     try { w.setHeaderColor?.("#141218"); w.setBackgroundColor?.("#141218"); } catch {}
+    try { w.lockOrientation?.(); } catch {}
   }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <div className="wallpaper" aria-hidden>
         <span /><span /><span /><span />
       </div>
-      <main className="mx-auto min-h-screen max-w-md px-5 pb-32 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
+      <main className="mx-auto min-h-[100dvh] w-full max-w-md px-5 pb-36 pt-[max(env(safe-area-inset-top,0px),16px)]">
         <Outlet />
       </main>
       <TabBar />

@@ -80,7 +80,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 if (r.kind === "deposit" && approve) await D.addGram(db, r.tg_id, Number(r.amount));
                 if (r.kind === "withdraw" && !approve) await D.addGram(db, r.tg_id, Number(r.amount));
                 const label = r.kind === "deposit" ? "Deposit" : "Withdrawal";
-                await send(r.tg_id, `${label} of <b>${r.amount} GRAM</b> was ${approve ? "approved" : "rejected"}.`).catch(() => null);
+                const net = (r as any).network ?? "ton";
+                const cur = (r as any).currency ?? "GRAM";
+                const tx = (r as any).tx_ref ? `\nTx: <code>${escapeHtml(String((r as any).tx_ref)).slice(0, 80)}</code>` : "";
+                await send(r.tg_id, `${label} of <b>${r.amount} ${escapeHtml(cur)}</b> (${escapeHtml(net)}) was ${approve ? "approved" : "rejected"}.${tx}`).catch(() => null);
                 await T.tg("editMessageReplyMarkup", { chat_id: uid, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => null);
                 await send(uid, `${label} ${approve ? "approved" : "rejected"}.`);
               }

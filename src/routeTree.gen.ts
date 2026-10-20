@@ -10,9 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EarnRouteImport } from './routes/earn'
 import { Route as NftRouteImport } from './routes/nft'
 import { Route as PlayRouteImport } from './routes/play'
-import { Route as TasksRouteImport } from './routes/tasks'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as ApiPublicJobsDailyPostRouteImport } from './routes/api/public/jobs/daily-post'
 import { Route as ApiPublicTaskImageIdRouteImport } from './routes/api/public/task-image.$id'
@@ -24,6 +24,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EarnRoute = EarnRouteImport.update({
+  id: '/earn',
+  path: '/earn',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NftRoute = NftRouteImport.update({
   id: '/nft',
   path: '/nft',
@@ -32,11 +37,6 @@ const NftRoute = NftRouteImport.update({
 const PlayRoute = PlayRouteImport.update({
   id: '/play',
   path: '/play',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TasksRoute = TasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WalletRoute = WalletRouteImport.update({
@@ -68,9 +68,9 @@ const ApiPublicTelegramWebhookRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/earn': typeof EarnRoute
   '/nft': typeof NftRoute
   '/play': typeof PlayRoute
-  '/tasks': typeof TasksRoute
   '/wallet': typeof WalletRoute
   '/api/public/jobs/daily-post': typeof ApiPublicJobsDailyPostRoute
   '/api/public/task-image/$id': typeof ApiPublicTaskImageIdRoute
@@ -79,9 +79,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/earn': typeof EarnRoute
   '/nft': typeof NftRoute
   '/play': typeof PlayRoute
-  '/tasks': typeof TasksRoute
   '/wallet': typeof WalletRoute
   '/api/public/jobs/daily-post': typeof ApiPublicJobsDailyPostRoute
   '/api/public/task-image/$id': typeof ApiPublicTaskImageIdRoute
@@ -91,9 +91,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/earn': typeof EarnRoute
   '/nft': typeof NftRoute
   '/play': typeof PlayRoute
-  '/tasks': typeof TasksRoute
   '/wallet': typeof WalletRoute
   '/api/public/jobs/daily-post': typeof ApiPublicJobsDailyPostRoute
   '/api/public/task-image/$id': typeof ApiPublicTaskImageIdRoute
@@ -104,9 +104,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/earn'
     | '/nft'
     | '/play'
-    | '/tasks'
     | '/wallet'
     | '/api/public/jobs/daily-post'
     | '/api/public/task-image/$id'
@@ -115,9 +115,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/earn'
     | '/nft'
     | '/play'
-    | '/tasks'
     | '/wallet'
     | '/api/public/jobs/daily-post'
     | '/api/public/task-image/$id'
@@ -126,9 +126,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/earn'
     | '/nft'
     | '/play'
-    | '/tasks'
     | '/wallet'
     | '/api/public/jobs/daily-post'
     | '/api/public/task-image/$id'
@@ -138,9 +138,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EarnRoute: typeof EarnRoute
   NftRoute: typeof NftRoute
   PlayRoute: typeof PlayRoute
-  TasksRoute: typeof TasksRoute
   WalletRoute: typeof WalletRoute
   ApiPublicJobsDailyPostRoute: typeof ApiPublicJobsDailyPostRoute
   ApiPublicTaskImageIdRoute: typeof ApiPublicTaskImageIdRoute
@@ -157,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/earn': {
+      id: '/earn'
+      path: '/earn'
+      fullPath: '/earn'
+      preLoaderRoute: typeof EarnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/nft': {
       id: '/nft'
       path: '/nft'
@@ -169,13 +176,6 @@ declare module '@tanstack/react-router' {
       path: '/play'
       fullPath: '/play'
       preLoaderRoute: typeof PlayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tasks': {
-      id: '/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof TasksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/wallet': {
@@ -218,9 +218,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EarnRoute: EarnRoute,
   NftRoute: NftRoute,
   PlayRoute: PlayRoute,
-  TasksRoute: TasksRoute,
   WalletRoute: WalletRoute,
   ApiPublicJobsDailyPostRoute: ApiPublicJobsDailyPostRoute,
   ApiPublicTaskImageIdRoute: ApiPublicTaskImageIdRoute,
