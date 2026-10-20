@@ -121,11 +121,11 @@ async function countTable(db: Db, table: string, query = ""): Promise<number> {
 }
 
 export async function addBalance(db: Db, tgId: number, delta: number): Promise<number> {
-  return Number(await rpc(db, "add_balance", { _tg_id: tgId, _delta: delta }));
+  return Number(await rpc(db, "musk_add_balance", { _tg_id: tgId, _delta: delta }));
 }
 
 export async function addGram(db: Db, tgId: number, delta: number): Promise<number> {
-  return Number(await rpc(db, "add_gram", { _tg_id: tgId, _delta: delta }));
+  return Number(await rpc(db, "musk_add_gram", { _tg_id: tgId, _delta: delta }));
 }
 
 export async function getMiningStartedAt(db: Db, tgId: number): Promise<string | null> {
