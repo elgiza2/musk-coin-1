@@ -1,8 +1,10 @@
 {
-  "rewrites": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "tanstack-start",
+  "crons": [
     {
-      "source": "/(.*)",
-      "destination": "https://musk-coin.lovable.app/$1"
+      "path": "/api/public/jobs/daily-post",
+      "schedule": "0 9 * * *"
     }
   ]
 }

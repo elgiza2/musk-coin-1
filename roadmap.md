@@ -7,6 +7,6 @@
 - [x] Daily auto-post 09:00 UTC to channel
 - [x] GRAM balance: Plinko + NFT priced in GRAM, deposit & withdraw (admin approves in bot)
 - [x] Bot token saved
-- [x] Keep the existing Lovable Cloud database and current app data in place
-- [x] Prepare Vercel to proxy all pages and server requests to the canonical app, preserving the existing Lovable Cloud database
-- [ ] Apply Vercel configuration and update relevant app links (blocked: the shared token is exposed in chat and must be revoked; this workspace has no Vercel connection)
+- [x] Keep the existing Supabase database and current app data in place
+- [x] Deploy the app on Vercel against the existing Supabase database
+- [x] Apply Vercel configuration and update relevant app links

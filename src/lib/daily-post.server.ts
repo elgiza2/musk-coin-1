@@ -39,16 +39,18 @@ export async function runDailyPost(force = false): Promise<{ ok: boolean; error?
   await db.from("daily_posts").upsert({ post_date: today, status: "generating", caption: line });
 
   try {
-    const key = process.env["LOVABLE_API_KEY"];
-    if (!key) throw new Error("LOVABLE_API_KEY missing");
+    const key = process.env["IMAGE_API_KEY"];
+    if (!key) throw new Error("IMAGE_API_KEY missing");
     const prompt =
       `Ultra clean minimal square poster. Centered: a cute glossy soft 3D ghost-like spirit mascot with two simple oval black eyes, smooth body in ${mood} tones, a small silver four-point sparkle star near it. ` +
       `Plain solid background with generous empty space. Below the mascot, one line of text in a very clean bold modern sans-serif font (like SF Pro Display Bold), perfectly spelled: "${line}". ` +
       `No emojis, no icons, no logos, no other text, no watermark. Apple keynote style, premium and calm.`;
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+    const apiBase = process.env["IMAGE_API_BASE"] ?? "https://api.openai.com/v1";
+    const model = process.env["IMAGE_MODEL"] ?? "gpt-image-1";
+    const res = await fetch(`${apiBase}/images/generations`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "openai/gpt-image-2.5-sunburst", prompt, size: "1024x1024" }),
+      body: JSON.stringify({ model, prompt, size: "1024x1024" }),
     });
     if (!res.ok) {
       const body = await res.text();
