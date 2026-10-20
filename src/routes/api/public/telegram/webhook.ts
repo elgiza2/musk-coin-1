@@ -75,8 +75,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               } else {
                 const approve = act === "ok";
                 await db.from("wallet_requests").update({ status: approve ? "approved" : "rejected" }).eq("id", id);
-                if (r.kind === "deposit" && approve) await db.rpc("add_gram", { _tg_id: r.tg_id, _delta: Number(r.amount) });
-                if (r.kind === "withdraw" && !approve) await db.rpc("add_gram", { _tg_id: r.tg_id, _delta: Number(r.amount) });
+                if (r.kind === "deposit" && approve) await db.rpc("add_gram", { _tg_id: r.tg_id, _delta: Number(r.amount) }, { schema: "musk" });
+                if (r.kind === "withdraw" && !approve) await db.rpc("add_gram", { _tg_id: r.tg_id, _delta: Number(r.amount) }, { schema: "musk" });
                 const label = r.kind === "deposit" ? "Deposit" : "Withdrawal";
                 await send(r.tg_id, `${label} of <b>${r.amount} GRAM</b> was ${approve ? "approved" : "rejected"}.`).catch(() => null);
                 await T.tg("editMessageReplyMarkup", { chat_id: uid, message_id: cq.message.message_id, reply_markup: { inline_keyboard: [] } }).catch(() => null);
@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             if (!exists) {
               const refId = ref && /^\d+$/.test(ref) && Number(ref) !== uid ? Number(ref) : null;
               await db.from("players").insert({ tg_id: uid, first_name: msg.from.first_name ?? "", username: msg.from.username ?? null, referred_by: refId });
-              if (refId) await db.rpc("add_balance", { _tg_id: refId, _delta: 250 }).then(() => null, () => null);
+              if (refId) await db.rpc("add_balance", { _tg_id: refId, _delta: 250 }, { schema: "musk" }).then(() => null, () => null);
             }
             await T.tg("sendPhoto", {
               chat_id: uid,

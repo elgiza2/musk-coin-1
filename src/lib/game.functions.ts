@@ -48,7 +48,7 @@ export const getMe = createServerFn({ method: "POST" })
         .single();
       if (error) throw new Error(error.message);
       row = created;
-      if (ref) await db.rpc("add_balance", { _tg_id: ref, _delta: 250 }).then(() => null, () => null);
+      if (ref) await db.rpc("add_balance", { _tg_id: ref, _delta: 250 }, { schema: "musk" }).then(() => null, () => null);
     } else {
       await db.from("players").update({ first_name: user.first_name, username: user.username ?? null, photo_url: user.photo_url ?? null }).eq("tg_id", user.id);
     }
@@ -61,7 +61,7 @@ export const getMe = createServerFn({ method: "POST" })
       photoUrl: row.photo_url,
       balance: Number(row.balance),
       gram: Number(row.gram_balance),
-      nfts: (owned ?? []).map((n) => n.nft_id),
+      nfts: (owned ?? []).map((n: any) => n.nft_id),
       miningStartedAt: row.mining_started_at ? new Date(row.mining_started_at).getTime() : null,
       referrals: count ?? 0,
     };
@@ -79,7 +79,7 @@ export const mineAction = createServerFn({ method: "POST" })
     if (started) {
       if (now - started < MINING_DURATION_MS) throw new Error("Mining still in progress");
       claimed = minedAmount(started, now);
-      await db.rpc("add_balance", { _tg_id: user.id, _delta: claimed });
+      await db.rpc("add_balance", { _tg_id: user.id, _delta: claimed }, { schema: "musk" });
     }
     await db.from("players").update({ mining_started_at: new Date(now).toISOString() }).eq("tg_id", user.id);
     return { claimed };
@@ -91,7 +91,7 @@ export const playPlinko = createServerFn({ method: "POST" })
     const { db, user } = await ctx(data.initData);
     const bet = Math.round(data.bet * 100) / 100;
     try {
-      await db.rpc("add_gram", { _tg_id: user.id, _delta: -bet }).throwOnError();
+      await db.rpc("add_gram", { _tg_id: user.id, _delta: -bet }, { schema: "musk" }).throwOnError();
     } catch {
       throw new Error("Not enough balance");
     }
@@ -100,7 +100,7 @@ export const playPlinko = createServerFn({ method: "POST" })
     const path = [...rnd].map((b) => b & 1);
     const slot = slotFromPath(path);
     const payout = payoutFor(bet, slot);
-    const { data: balance } = await db.rpc("add_gram", { _tg_id: user.id, _delta: payout });
+    const { data: balance } = await db.rpc("add_gram", { _tg_id: user.id, _delta: payout }, { schema: "musk" });
     return { path, slot, payout, balance: Number(balance) };
   });
 
@@ -117,10 +117,10 @@ export const listTasks = createServerFn({ method: "POST" })
       const v = await verifyInitData(data.initData);
       if (v) {
         const { data: c } = await db.from("task_completions").select("task_id").eq("tg_id", v.user.id);
-        done = new Set((c ?? []).map((x) => x.task_id));
+        done = new Set((c ?? []).map((x: any) => x.task_id));
       }
     }
-    return (tasks ?? []).map((t) => ({ id: t.id, title: t.title, link: t.link, reward: Number(t.reward), hasImage: !!t.image_url, done: done.has(t.id) }));
+    return (tasks ?? []).map((t: any) => ({ id: t.id, title: t.title, link: t.link, reward: Number(t.reward), hasImage: !!t.image_url, done: done.has(t.id) }));
   });
 
 export const completeTask = createServerFn({ method: "POST" })
@@ -131,7 +131,7 @@ export const completeTask = createServerFn({ method: "POST" })
     if (!task) throw new Error("Task not found");
     const { error } = await db.from("task_completions").insert({ tg_id: user.id, task_id: data.taskId });
     if (error) throw new Error("Already completed");
-    const { data: balance } = await db.rpc("add_balance", { _tg_id: user.id, _delta: Number(task.reward) });
+    const { data: balance } = await db.rpc("add_balance", { _tg_id: user.id, _delta: Number(task.reward) }, { schema: "musk" });
     return { balance: Number(balance), reward: Number(task.reward) };
   });
 
@@ -145,7 +145,7 @@ export const buyNft = createServerFn({ method: "POST" })
     const { data: own } = await db.from("user_nfts").select("nft_id").eq("tg_id", user.id).eq("nft_id", nft.id).maybeSingle();
     if (own) throw new Error("You already own this NFT");
     try {
-      await db.rpc("add_gram", { _tg_id: user.id, _delta: -nft.price }).throwOnError();
+      await db.rpc("add_gram", { _tg_id: user.id, _delta: -nft.price }, { schema: "musk" }).throwOnError();
     } catch {
       throw new Error("Not enough GRAM");
     }
@@ -193,7 +193,7 @@ export const checkDeposit = createServerFn({ method: "POST" })
     if (!hit) return { status: "pending" };
     const { data: upd } = await db.from("wallet_requests").update({ status: "approved", tx_ref: hit.transaction_id?.hash ?? null }).eq("id", r.id).eq("status", "pending").select("id");
     if (upd?.length) {
-      await db.rpc("add_gram", { _tg_id: user.id, _delta: Number(r.amount) });
+      await db.rpc("add_gram", { _tg_id: user.id, _delta: Number(r.amount) }, { schema: "musk" });
       await notifyAdmins(db, `<b>Deposit received</b>\nUser: ${user.id}\nAmount: ${r.amount} GRAM`, null).catch(() => null);
     }
     return { status: "approved" };
@@ -204,13 +204,13 @@ export const requestWithdraw = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { db, user } = await ctx(data.initData);
     try {
-      await db.rpc("add_gram", { _tg_id: user.id, _delta: -data.amount }).throwOnError();
+      await db.rpc("add_gram", { _tg_id: user.id, _delta: -data.amount }, { schema: "musk" }).throwOnError();
     } catch {
       throw new Error("Not enough GRAM");
     }
     const { data: r, error } = await db.from("wallet_requests").insert({ tg_id: user.id, kind: "withdraw", amount: data.amount, address: data.address }).select("id").single();
     if (error) {
-      await db.rpc("add_gram", { _tg_id: user.id, _delta: data.amount });
+      await db.rpc("add_gram", { _tg_id: user.id, _delta: data.amount }, { schema: "musk" });
       throw new Error(error.message);
     }
     await notifyAdmins(db, `<b>Withdraw request</b>\nUser: ${user.id}${user.username ? ` (@${user.username})` : ""}\nAmount: ${data.amount} GRAM\nTo: <code>${data.address.replace(/[<>&]/g, "")}</code>`, r.id);
@@ -224,5 +224,5 @@ export const listWalletRequests = createServerFn({ method: "POST" })
     if (!data.initData) return [];
     const { db, user } = await ctx(data.initData);
     const { data: rows } = await db.from("wallet_requests").select("id,kind,amount,status,created_at").eq("tg_id", user.id).order("created_at", { ascending: false }).limit(20);
-    return (rows ?? []).map((r) => ({ id: r.id, kind: r.kind, amount: Number(r.amount), status: r.status, createdAt: r.created_at }));
+    return (rows ?? []).map((r: any) => ({ id: r.id, kind: r.kind, amount: Number(r.amount), status: r.status, createdAt: r.created_at }));
   });
